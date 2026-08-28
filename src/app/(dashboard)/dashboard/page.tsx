@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import StatCard from '@/components/ui/StatCard'
 import EquityCurve from '@/components/charts/EquityCurve'
+import MonthlyCalendar from '@/components/calendar/MonthlyCalendar'
 import type { Trade, AnalyticsSummary } from '@/types'
 
 function fmt(v: number, prefix = '$') {
@@ -13,6 +14,13 @@ function fmt(v: number, prefix = '$') {
 
 function fmtPct(v: number) {
   return `${(v * 100).toFixed(1)}%`
+}
+
+// Average reward-to-risk: mean win size vs. mean loss size over the range.
+function fmtRR(avgWin: number, avgLoss: number) {
+  const risk = Math.abs(avgLoss)
+  if (risk === 0) return avgWin > 0 ? '∞:1' : '—'
+  return `${(avgWin / risk).toFixed(1)}:1`
 }
 
 export default function DashboardPage() {
@@ -167,7 +175,7 @@ export default function DashboardPage() {
 
       {/* Secondary stats */}
       {summary && (
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-3 mt-4">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 mt-4">
           <StatCard
             label="Max Drawdown"
             value={fmt(summary.max_drawdown)}
@@ -183,8 +191,18 @@ export default function DashboardPage() {
             value={fmt(summary.avg_loss)}
             negative={summary.avg_loss < 0}
           />
+          <StatCard
+            label="Avg R:R"
+            value={fmtRR(summary.avg_win, summary.avg_loss)}
+            positive={Math.abs(summary.avg_loss) > 0 && summary.avg_win / Math.abs(summary.avg_loss) >= 2}
+            negative={Math.abs(summary.avg_loss) > 0 && summary.avg_win / Math.abs(summary.avg_loss) < 1}
+            subtext={`${summary.wins}W / ${summary.losses}L`}
+          />
         </div>
       )}
+
+      {/* Monthly P&L calendar */}
+      <MonthlyCalendar />
     </div>
   )
 }
