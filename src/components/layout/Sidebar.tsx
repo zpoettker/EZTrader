@@ -43,7 +43,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
         style={{ borderBottom: '1px solid var(--color-border-subtle)' }}
       >
         {!collapsed && (
-          <span className="text-base font-bold tracking-wide" style={{ color: 'var(--color-text-primary)' }}>
+          <span className="text-xl font-bold tracking-wide" style={{ color: 'var(--color-text-primary)' }}>
             EZ<span style={{ color: 'var(--color-accent-blue)' }}>Trader</span>
           </span>
         )}

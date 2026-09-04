@@ -7,6 +7,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  ReferenceLine,
   ResponsiveContainer,
 } from 'recharts'
 
@@ -76,6 +77,8 @@ export default function EquityCurve({ data }: EquityCurveProps) {
           width={70}
         />
         <Tooltip content={<CustomTooltip />} />
+        {/* Brighter baseline at break-even */}
+        <ReferenceLine y={0} stroke="var(--color-text-muted)" strokeWidth={1} />
         <Line
           type="monotone"
           dataKey="cumPnl"

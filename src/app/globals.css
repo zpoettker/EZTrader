@@ -40,6 +40,25 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Buttons are clickable — use the pointer cursor (Tailwind's reset sets default) */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+
+/* Calendar "today" arrow: brief horizontal nudge when landing on this month */
+@keyframes today-arrow-bounce {
+  0%, 100% { transform: translateX(0); }
+  30% { transform: translateX(3px); }
+  60% { transform: translateX(1px); }
+}
+.today-arrow-bounce {
+  animation: today-arrow-bounce 0.5s ease-in-out 2;
+}
+@media (prefers-reduced-motion: reduce) {
+  .today-arrow-bounce { animation: none; }
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

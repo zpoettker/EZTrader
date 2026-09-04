@@ -21,7 +21,9 @@ function fmtPct(v: number) {
 function fmtRR(avgWin: number, avgLoss: number) {
   const risk = Math.abs(avgLoss)
   if (risk === 0) return avgWin > 0 ? '∞:1' : '—'
-  return `${(avgWin / risk).toFixed(1)}:1`
+  // Truncate to 1 decimal (1.99 -> 1.9), then drop a trailing .0 (2.0 -> 2)
+  const ratio = Math.floor((avgWin / risk) * 10 + 1e-9) / 10
+  return `${Number(ratio.toFixed(1))}:1`
 }
 
 type Range = '7d' | '30d' | '90d' | 'all' | 'custom'
@@ -162,7 +164,7 @@ export default function DashboardPage() {
     <div className="p-8">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>
+        <h1 className="text-3xl font-semibold" style={{ color: 'var(--color-text-primary)' }}>
           Dashboard
         </h1>
         <div ref={customRef} className="relative">
@@ -276,8 +278,6 @@ export default function DashboardPage() {
           <StatCard
             label="Avg R:R"
             value={fmtRR(summary.avg_win, summary.avg_loss)}
-            positive={Math.abs(summary.avg_loss) > 0 && summary.avg_win / Math.abs(summary.avg_loss) >= 2}
-            negative={Math.abs(summary.avg_loss) > 0 && summary.avg_win / Math.abs(summary.avg_loss) < 1}
             subtext={`${summary.wins}W / ${summary.losses}L`}
           />
           <StatCard
@@ -313,7 +313,7 @@ export default function DashboardPage() {
           <StatCard
             label="Profit Factor"
             value={isFinite(summary.profit_factor) ? summary.profit_factor.toFixed(2) : '∞'}
-            positive={summary.profit_factor >= 1.5}
+            positive={summary.profit_factor > 1.1}
             negative={summary.profit_factor < 1}
             subtext={`Expectancy: ${fmt(summary.expectancy)}`}
           />

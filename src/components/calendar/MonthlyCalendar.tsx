@@ -11,6 +11,10 @@ function ymd(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
+function monthKey(d: Date) {
+  return `${d.getFullYear()}-${d.getMonth()}`
+}
+
 function money(v: number, pad = false) {
   const abs = Math.abs(v).toLocaleString('en-US', {
     minimumFractionDigits: pad ? 2 : 0,
@@ -110,12 +114,22 @@ export default function MonthlyCalendar({ onSync }: MonthlyCalendarProps) {
 
   const monthLabel = view.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
   const todayKey = ymd(new Date())
+  const currentMonthKey = monthKey(new Date())
+
+  // Incremented to (re)trigger the "today" arrow bounce whenever the calendar
+  // lands on the current month, or the TODAY button is pressed.
+  const [bounce, setBounce] = useState(0)
 
   const goToday = () => {
     const d = new Date()
     setView(new Date(d.getFullYear(), d.getMonth(), 1))
+    setBounce((b) => b + 1)
   }
-  const shift = (delta: number) => setView((v) => new Date(v.getFullYear(), v.getMonth() + delta, 1))
+  const shift = (delta: number) => {
+    const next = new Date(view.getFullYear(), view.getMonth() + delta, 1)
+    setView(next)
+    if (monthKey(next) === currentMonthKey) setBounce((b) => b + 1)
+  }
 
   const navBtn = {
     background: 'var(--color-bg-secondary)',
@@ -242,7 +256,9 @@ export default function MonthlyCalendar({ onSync }: MonthlyCalendarProps) {
                     <span className="flex items-center gap-1">
                       {isToday && (
                         <span
+                          key={bounce}
                           aria-label="Today"
+                          className={bounce > 0 ? 'today-arrow-bounce' : undefined}
                           style={{
                             width: 0,
                             height: 0,
