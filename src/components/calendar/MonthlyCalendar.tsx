@@ -19,17 +19,18 @@ function money(v: number, pad = false) {
   return `${v < 0 ? '-' : ''}$${abs}`
 }
 
-function fmtR(r: number) {
-  return `${r < 0 ? '-' : ''}${Math.abs(r).toFixed(2)}R`
-}
-
 interface DayStat {
   pnl: number
   trades: number
-  r: number
+  wins: number
 }
 
-export default function MonthlyCalendar() {
+interface MonthlyCalendarProps {
+  /** Set the dashboard's top widgets to the month currently shown here. */
+  onSync?: (monthStart: Date, monthEnd: Date) => void
+}
+
+export default function MonthlyCalendar({ onSync }: MonthlyCalendarProps) {
   const [view, setView] = useState(() => {
     const d = new Date()
     return new Date(d.getFullYear(), d.getMonth(), 1)
@@ -64,22 +65,15 @@ export default function MonthlyCalendar() {
   }, [view])
 
   const { dayStats, weeks, weekSummaries, monthPnl, tradingDays } = useMemo(() => {
-    // "R" unit: average losing day-trade size for the month (falls back to any
-    // trade size, then 1). Keeps the calendar consistent with the Avg R:R card.
-    const losses = trades.filter((t) => (t.net_pnl ?? 0) < 0).map((t) => Math.abs(t.net_pnl ?? 0))
-    const all = trades.map((t) => Math.abs(t.net_pnl ?? 0)).filter((v) => v > 0)
-    const avg = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length
-    const riskUnit = losses.length ? avg(losses) : all.length ? avg(all) : 1
-
     const stats: Record<string, DayStat> = {}
     for (const t of trades) {
       if (!t.entry_time) continue
       const key = ymd(new Date(t.entry_time))
-      const s = (stats[key] ??= { pnl: 0, trades: 0, r: 0 })
+      const s = (stats[key] ??= { pnl: 0, trades: 0, wins: 0 })
       s.pnl += t.net_pnl ?? 0
       s.trades += 1
+      if ((t.net_pnl ?? 0) > 0) s.wins += 1
     }
-    for (const key of Object.keys(stats)) stats[key].r = stats[key].pnl / riskUnit
 
     const year = view.getFullYear()
     const month = view.getMonth()
@@ -164,6 +158,20 @@ export default function MonthlyCalendar() {
         </div>
 
         <div className="flex items-center gap-2">
+          {onSync && (
+            <button
+              onClick={() =>
+                onSync(
+                  new Date(view.getFullYear(), view.getMonth(), 1),
+                  new Date(view.getFullYear(), view.getMonth() + 1, 0),
+                )
+              }
+              className="px-2.5 py-1.5 rounded-lg text-xs font-medium"
+              style={navBtn}
+            >
+              SYNC
+            </button>
+          )}
           <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
             Monthly stats:
           </span>
@@ -262,7 +270,7 @@ export default function MonthlyCalendar() {
                         {s.trades} trade{s.trades === 1 ? '' : 's'}
                       </p>
                       <p className="text-xs font-mono" style={{ color: 'var(--color-text-muted)' }}>
-                        {fmtR(s.r)}
+                        {Math.round((s.wins / s.trades) * 100)}% WR
                       </p>
                     </div>
                   )}

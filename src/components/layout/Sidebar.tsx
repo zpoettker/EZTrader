@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, TableProperties, Upload, LogOut } from 'lucide-react'
+import { LayoutDashboard, TableProperties, Upload, LogOut, Menu } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 const navItems = [
@@ -11,7 +11,12 @@ const navItems = [
   { href: '/import', label: 'Import', icon: Upload },
 ]
 
-export default function Sidebar() {
+interface SidebarProps {
+  collapsed: boolean
+  onToggle: () => void
+}
+
+export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
 
@@ -24,20 +29,33 @@ export default function Sidebar() {
 
   return (
     <aside
-      className="flex flex-col w-56 h-screen fixed left-0 top-0 z-10"
+      className={`flex flex-col h-screen fixed left-0 top-0 z-10 transition-[width] duration-200 ${
+        collapsed ? 'w-16' : 'w-56'
+      }`}
       style={{
         background: 'var(--color-bg-secondary)',
         borderRight: '1px solid var(--color-border-subtle)',
       }}
     >
-      {/* Logo */}
+      {/* Logo + toggle */}
       <div
-        className="flex items-center h-14 px-5"
+        className={`flex items-center h-14 ${collapsed ? 'justify-center px-2' : 'justify-between px-4'}`}
         style={{ borderBottom: '1px solid var(--color-border-subtle)' }}
       >
-        <span className="text-base font-bold tracking-wide" style={{ color: 'var(--color-text-primary)' }}>
-          EZ<span style={{ color: 'var(--color-accent-blue)' }}>Trader</span>
-        </span>
+        {!collapsed && (
+          <span className="text-base font-bold tracking-wide" style={{ color: 'var(--color-text-primary)' }}>
+            EZ<span style={{ color: 'var(--color-accent-blue)' }}>Trader</span>
+          </span>
+        )}
+        <button
+          onClick={onToggle}
+          className="p-2 rounded-lg transition-colors"
+          style={{ color: 'var(--color-text-secondary)' }}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          <Menu size={18} />
+        </button>
       </div>
 
       {/* Nav */}
@@ -48,14 +66,17 @@ export default function Sidebar() {
             <Link
               key={href}
               href={href}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors"
+              title={collapsed ? label : undefined}
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                collapsed ? 'justify-center' : ''
+              }`}
               style={{
                 background: active ? 'var(--color-bg-hover)' : 'transparent',
                 color: active ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
               }}
             >
-              <Icon size={16} />
-              {label}
+              <Icon size={16} className="shrink-0" />
+              {!collapsed && label}
             </Link>
           )
         })}
@@ -65,11 +86,14 @@ export default function Sidebar() {
       <div className="px-3 py-4" style={{ borderTop: '1px solid var(--color-border-subtle)' }}>
         <button
           onClick={handleSignOut}
-          className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm transition-colors"
+          title={collapsed ? 'Sign out' : undefined}
+          className={`flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm transition-colors ${
+            collapsed ? 'justify-center' : ''
+          }`}
           style={{ color: 'var(--color-text-muted)' }}
         >
-          <LogOut size={16} />
-          Sign out
+          <LogOut size={16} className="shrink-0" />
+          {!collapsed && 'Sign out'}
         </button>
       </div>
     </aside>
