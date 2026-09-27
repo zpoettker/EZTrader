@@ -14,6 +14,7 @@ A futures trading journal that shows how you actually performed over any trading
 ### Calendar Widget
 ![Trade Log](docs/screenshots/trade-log.png)
 
+
 ---
 
 ## Features
