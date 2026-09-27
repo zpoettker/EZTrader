@@ -2,7 +2,7 @@
 
 A futures trading journal that shows how you actually performed over any trading period. Import your trades from NinjaTrader or Tradovate, pick a date range, and get your core stats, equity curve, and a P&L calendar in one view.
 
-**Live demo:** [your-app.vercel.app](https://your-app.vercel.app)
+**Live demo:** [eztrader.vercel.app/dashboard]([https://your-app.vercel.ap](https://eztrader-tau.vercel.app/dashboard)p)
 
 ---
 
@@ -11,11 +11,8 @@ A futures trading journal that shows how you actually performed over any trading
 ### Dashboard
 ![Dashboard](docs/screenshots/dashboard.png)
 
-### Trade Log
+### Calendar Widget
 ![Trade Log](docs/screenshots/trade-log.png)
-
-### CSV Import
-![CSV Import](docs/screenshots/import.png)
 
 ---
 
