@@ -9,10 +9,13 @@ A futures trading journal that shows how you actually performed over any trading
 ## Screenshots
 
 ### Dashboard
-![Dashboard](docs/screenshots/dashboard.png)
+![Dashboard](public/Dashboard.png)
 
 ### Calendar Widget
-![Trade Log](docs/screenshots/trade-log.png)
+![Trade Log](public/calendar-widget.png)
+
+### Trade Log
+![Trade Log](public/trade-log.png)
 
 
 ---
