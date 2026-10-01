@@ -2,13 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, TableProperties, Upload, LogOut, Menu } from 'lucide-react'
+import { LayoutDashboard, TableProperties, Upload, Settings, LogOut, Menu } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/trades', label: 'Trade Log', icon: TableProperties },
   { href: '/import', label: 'Import', icon: Upload },
+  { href: '/settings', label: 'Settings', icon: Settings },
 ]
 
 interface SidebarProps {

@@ -22,6 +22,7 @@ class QueryBuilder implements PromiseLike<Result> {
   private orderBy: { col: string; asc: boolean }[] = []
   private rangeBounds: [number, number] | null = null
   private wantCount = false
+  private mutation: { kind: 'update'; values: Row } | { kind: 'delete' } | null = null
 
   constructor(private rows: Row[]) {}
 
@@ -84,7 +85,37 @@ class QueryBuilder implements PromiseLike<Result> {
     return { data: toAdd, error: null }
   }
 
+  async upsert(rows: Row | Row[]) {
+    const list = Array.isArray(rows) ? rows : [rows]
+    for (const r of list) {
+      const existing = this.rows.find((x) => x.id === r.id)
+      if (existing) Object.assign(existing, r)
+      else this.rows.push(r)
+    }
+    return { data: list, error: null }
+  }
+
+  update(values: Row) {
+    this.mutation = { kind: 'update', values }
+    return this
+  }
+
+  delete() {
+    this.mutation = { kind: 'delete' }
+    return this
+  }
+
   private run(): Result {
+    if (this.mutation) {
+      const matched = this.rows.filter((r) => this.filters.every((f) => f(r)))
+      if (this.mutation.kind === 'update') {
+        for (const r of matched) Object.assign(r, this.mutation.values)
+      } else {
+        for (const r of matched) this.rows.splice(this.rows.indexOf(r), 1)
+      }
+      return { data: matched, count: null, error: null }
+    }
+
     let out = this.rows.filter((r) => this.filters.every((f) => f(r)))
     for (const { col, asc } of [...this.orderBy].reverse()) {
       out = [...out].sort((a, b) => {
@@ -138,6 +169,9 @@ export function createDemoClient() {
       },
       async signUp() {
         return authError('Demo mode — sign-up is disabled.')
+      },
+      async updateUser() {
+        return authError('Demo mode — account changes are disabled.')
       },
       async signOut() {
         return { error: null }

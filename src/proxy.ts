@@ -43,7 +43,8 @@ export async function proxy(request: NextRequest) {
   const isProtectedRoute =
     pathname.startsWith('/dashboard') ||
     pathname.startsWith('/trades') ||
-    pathname.startsWith('/import')
+    pathname.startsWith('/import') ||
+    pathname.startsWith('/settings')
 
   if (!user && isProtectedRoute) {
     const url = request.nextUrl.clone()

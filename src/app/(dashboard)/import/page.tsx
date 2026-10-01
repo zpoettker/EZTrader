@@ -1,9 +1,11 @@
 'use client'
 
-import { useState, useRef } from 'react'
-import { Upload, CheckCircle, AlertCircle, X } from 'lucide-react'
+import { useState, useRef, useMemo } from 'react'
+import { Upload, CheckCircle, AlertCircle, X, Plus } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { parseCSV, type ParsedTrade } from '@/lib/csv-parsers'
+import { parseCSV, productFromContract, type ParsedTrade } from '@/lib/csv-parsers'
+import { loadFees, saveFees } from '@/lib/fees'
+import { tradeKey, fetchExistingKeys } from '@/lib/trade-dedupe'
 
 type ImportState = 'idle' | 'preview' | 'importing' | 'done' | 'error'
 
@@ -15,18 +17,115 @@ function formatPnl(v: number | null) {
 
 export default function ImportPage() {
   const [state, setState] = useState<ImportState>('idle')
-  const [trades, setTrades] = useState<ParsedTrade[]>([])
+  const [parsedTrades, setTrades] = useState<ParsedTrade[]>([])
+  const [fees, setFees] = useState<Record<string, string>>({})
   const [broker, setBroker] = useState('')
   const [error, setError] = useState('')
   const [importedCount, setImportedCount] = useState(0)
+  const [skippedCount, setSkippedCount] = useState(0)
+  const [existingKeys, setExistingKeys] = useState<Set<string> | null>(null)
+  const [checkingDuplicates, setCheckingDuplicates] = useState(false)
   const [accountId, setAccountId] = useState('')
   const [accounts, setAccounts] = useState<{ id: string; name: string }[]>([])
+  const [newAccountName, setNewAccountName] = useState('')
+  const [creatingAccount, setCreatingAccount] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  async function loadAccounts() {
+  // Tradovate exports have no fees, so they're entered per product and applied here
+  const feesApply = broker === 'tradovate'
+  const products = useMemo(
+    () => [...new Set(parsedTrades.map((t) => productFromContract(t.symbol)))].sort(),
+    [parsedTrades],
+  )
+  const trades = useMemo(() => {
+    if (!feesApply) return parsedTrades
+    return parsedTrades.map((t) => {
+      const fee = parseFloat(fees[productFromContract(t.symbol)] ?? '') || 0
+      const commission = Math.round(fee * (t.quantity ?? 0) * 100) / 100
+      const net_pnl = t.pnl != null ? Math.round((t.pnl - commission) * 100) / 100 : null
+      return { ...t, commission, net_pnl }
+    })
+  }, [parsedTrades, fees, feesApply])
+  // A trade is a duplicate if the account already has it, or it appears earlier in this file
+  const duplicateFlags = useMemo(() => {
+    const seen = new Set(existingKeys ?? [])
+    return trades.map((t) => {
+      const key = tradeKey(t)
+      if (seen.has(key)) return true
+      seen.add(key)
+      return false
+    })
+  }, [trades, existingKeys])
+  const newTrades = useMemo(() => trades.filter((_, i) => !duplicateFlags[i]), [trades, duplicateFlags])
+  const duplicateCount = trades.length - newTrades.length
+
+  const totals = useMemo(
+    () => trades.reduce(
+      (acc, t) => ({
+        gross: acc.gross + (t.pnl ?? 0),
+        fees: acc.fees + t.commission,
+        net: acc.net + (t.net_pnl ?? 0),
+      }),
+      { gross: 0, fees: 0, net: 0 },
+    ),
+    [trades],
+  )
+
+  function updateFee(product: string, value: string) {
+    const next = { ...fees, [product]: value }
+    setFees(next)
+    saveFees(next)
+  }
+
+  async function loadAccounts(): Promise<{ id: string; name: string }[]> {
     const supabase = createClient()
     const { data } = await supabase.from('accounts').select('id, name').order('name')
     setAccounts(data ?? [])
+    return data ?? []
+  }
+
+  async function selectAccount(id: string) {
+    setAccountId(id)
+    setExistingKeys(null)
+    if (!id) return
+
+    setCheckingDuplicates(true)
+    try {
+      setExistingKeys(await fetchExistingKeys(createClient(), id))
+    } catch (e) {
+      setError(`Could not check for duplicates: ${(e as Error).message}`)
+    }
+    setCheckingDuplicates(false)
+  }
+
+  async function handleCreateAccount() {
+    const name = newAccountName.trim()
+    if (!name) return
+    setCreatingAccount(true)
+    setError('')
+
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      setError('Not authenticated.')
+      setCreatingAccount(false)
+      return
+    }
+
+    const { error: insertError } = await supabase
+      .from('accounts')
+      .insert({ user_id: user.id, name, broker: broker || null })
+    if (insertError) {
+      setError(`Could not create account: ${insertError.message}`)
+      setCreatingAccount(false)
+      return
+    }
+
+    const list = await loadAccounts()
+    const created = list.find((a) => a.name === name)
+    if (created) await selectAccount(created.id)
+    setNewAccountName('')
+    setCreatingAccount(false)
   }
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -35,6 +134,10 @@ export default function ImportPage() {
     setError('')
 
     const text = await file.text()
+    if (!text.trim() || text.trim() === 'undefined') {
+      setError('This file is empty. The broker export may have failed, so try downloading it again.')
+      return
+    }
     const result = parseCSV(text)
 
     if (result.broker === 'unknown') {
@@ -47,6 +150,7 @@ export default function ImportPage() {
     }
 
     setTrades(result.trades)
+    setFees(loadFees())
     setBroker(result.broker)
     setState('preview')
     await loadAccounts()
@@ -58,6 +162,8 @@ export default function ImportPage() {
     setBroker('')
     setError('')
     setAccountId('')
+    setExistingKeys(null)
+    setNewAccountName('')
     if (fileRef.current) fileRef.current.value = ''
   }
 
@@ -77,7 +183,23 @@ export default function ImportPage() {
       return
     }
 
-    const rows = trades.map((t) => ({ ...t, user_id: user.id, account_id: accountId }))
+    // Re-check against the database in case trades were added since the account was selected
+    let keys: Set<string>
+    try {
+      keys = await fetchExistingKeys(supabase, accountId)
+    } catch (e) {
+      setError(`Could not check for duplicates: ${(e as Error).message}`)
+      setState('preview')
+      return
+    }
+    const toInsert = trades.filter((t) => {
+      const key = tradeKey(t)
+      if (keys.has(key)) return false
+      keys.add(key)
+      return true
+    })
+
+    const rows = toInsert.map((t) => ({ ...t, user_id: user.id, account_id: accountId }))
 
     // Insert in batches of 100
     let count = 0
@@ -93,6 +215,7 @@ export default function ImportPage() {
     }
 
     setImportedCount(count)
+    setSkippedCount(trades.length - toInsert.length)
     setState('done')
   }
 
@@ -122,7 +245,7 @@ export default function ImportPage() {
             Click to upload CSV
           </p>
           <p className="mt-1 text-xs" style={{ color: 'var(--color-text-muted)' }}>
-            NinjaTrader execution report or Tradovate activity statement
+            NinjaTrader execution report or Tradovate Orders export
           </p>
           <input
             ref={fileRef}
@@ -157,6 +280,14 @@ export default function ImportPage() {
               </span>
               <span className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
                 {trades.length} trades detected
+                {accountId && existingKeys && (
+                  <>
+                    {' · '}
+                    <span style={{ color: 'var(--color-text-primary)' }}>{newTrades.length} new</span>
+                    {duplicateCount > 0 && ` · ${duplicateCount} already imported`}
+                  </>
+                )}
+                {checkingDuplicates && ' · checking for duplicates…'}
               </span>
             </div>
             <button onClick={reset} style={{ color: 'var(--color-text-muted)' }}>
@@ -171,7 +302,7 @@ export default function ImportPage() {
             </label>
             <select
               value={accountId}
-              onChange={(e) => setAccountId(e.target.value)}
+              onChange={(e) => selectAccount(e.target.value)}
               className="px-3 py-1.5 rounded-lg text-sm outline-none"
               style={{
                 background: 'var(--color-bg-card)',
@@ -184,12 +315,83 @@ export default function ImportPage() {
                 <option key={a.id} value={a.id}>{a.name}</option>
               ))}
             </select>
-            {accounts.length === 0 && (
-              <span className="text-xs" style={{ color: 'var(--color-loss)' }}>
-                No accounts found — create one in Settings first
-              </span>
-            )}
           </div>
+
+          {/* New account */}
+          <div className="mb-4 flex items-center gap-3">
+            <label className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+              {accounts.length === 0 ? 'Create an account:' : 'Or create new:'}
+            </label>
+            <input
+              type="text"
+              value={newAccountName}
+              onChange={(e) => setNewAccountName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleCreateAccount()
+              }}
+              placeholder="e.g. Tradovate Eval 50K"
+              className="px-3 py-1.5 rounded-lg text-sm outline-none"
+              style={{
+                background: 'var(--color-bg-card)',
+                border: '1px solid var(--color-border)',
+                color: 'var(--color-text-primary)',
+              }}
+            />
+            <button
+              onClick={handleCreateAccount}
+              disabled={creatingAccount || !newAccountName.trim()}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm disabled:opacity-50"
+              style={{ color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }}
+            >
+              <Plus size={14} />
+              {creatingAccount ? 'Creating…' : 'Create'}
+            </button>
+          </div>
+
+          {/* Fees */}
+          {feesApply && (
+            <div
+              className="mb-4 rounded-xl p-4"
+              style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}
+            >
+              <p className="text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
+                Fees per contract (round trip)
+              </p>
+              <p className="mt-0.5 mb-3 text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                Tradovate exports don&apos;t include fees. Enter what your broker or prop firm charges to open
+                and close one contract. Saved fees can also be managed in Settings.
+              </p>
+              <div className="flex flex-wrap gap-4">
+                {products.map((product) => (
+                  <label key={product} className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+                    <span className="font-mono">{product}</span>
+                    <span>$</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      inputMode="decimal"
+                      value={fees[product] ?? ''}
+                      onChange={(e) => updateFee(product, e.target.value)}
+                      placeholder="0.00"
+                      className="w-24 px-2 py-1 rounded-lg text-sm font-mono outline-none"
+                      style={{
+                        background: 'var(--color-bg-secondary)',
+                        border: '1px solid var(--color-border)',
+                        color: 'var(--color-text-primary)',
+                      }}
+                    />
+                  </label>
+                ))}
+              </div>
+              <p className="mt-3 text-xs font-mono" style={{ color: 'var(--color-text-secondary)' }}>
+                Gross {formatPnl(Math.round(totals.gross * 100) / 100)} · Fees ${totals.fees.toFixed(2)} · Net{' '}
+                <span style={{ color: totals.net >= 0 ? 'var(--color-profit)' : 'var(--color-loss)' }}>
+                  {formatPnl(Math.round(totals.net * 100) / 100)}
+                </span>
+              </p>
+            </div>
+          )}
 
           {/* Preview table */}
           <div
@@ -215,9 +417,20 @@ export default function ImportPage() {
                   {trades.slice(0, 50).map((t, i) => (
                     <tr
                       key={i}
-                      style={{ borderBottom: '1px solid var(--color-border-subtle)' }}
+                      style={{
+                        borderBottom: '1px solid var(--color-border-subtle)',
+                        opacity: duplicateFlags[i] ? 0.4 : 1,
+                      }}
+                      title={duplicateFlags[i] ? 'Already imported, will be skipped' : undefined}
                     >
-                      <td className="px-4 py-2 font-mono" style={{ color: 'var(--color-text-primary)' }}>{t.symbol}</td>
+                      <td className="px-4 py-2 font-mono whitespace-nowrap" style={{ color: 'var(--color-text-primary)' }}>
+                        {t.symbol}
+                        {duplicateFlags[i] && (
+                          <span className="ml-2 text-[10px] uppercase" style={{ color: 'var(--color-text-muted)' }}>
+                            duplicate
+                          </span>
+                        )}
+                      </td>
                       <td className="px-4 py-2">
                         <span
                           className="px-1.5 py-0.5 rounded text-xs font-medium"
@@ -265,11 +478,11 @@ export default function ImportPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={handleImport}
-              disabled={state === 'importing' || !accountId}
+              disabled={state === 'importing' || !accountId || !existingKeys || newTrades.length === 0}
               className="px-5 py-2 rounded-lg text-sm font-medium disabled:opacity-50 transition-colors"
               style={{ background: 'var(--color-accent-blue)', color: '#fff' }}
             >
-              {state === 'importing' ? 'Importing…' : `Import ${trades.length} Trades`}
+              {state === 'importing' ? 'Importing…' : newTrades.length === 0 ? 'Nothing new to import' : `Import ${newTrades.length} Trades`}
             </button>
             <button
               onClick={reset}
@@ -293,6 +506,11 @@ export default function ImportPage() {
           <p className="text-base font-semibold" style={{ color: 'var(--color-text-primary)' }}>
             {importedCount} trades imported
           </p>
+          {skippedCount > 0 && (
+            <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+              Skipped {skippedCount} {skippedCount === 1 ? 'trade' : 'trades'} already in this account
+            </p>
+          )}
           <div className="flex gap-3 mt-2">
             <a
               href="/trades"
