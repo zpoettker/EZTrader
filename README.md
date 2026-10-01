@@ -2,7 +2,7 @@
 
 A futures trading journal that shows how you actually performed over any trading period. Import your trades from NinjaTrader or Tradovate, pick a date range, and get your core stats, equity curve, and a P&L calendar in one view.
 
-**Live demo:** [eztrader.vercel.app/dashboard]([https://your-app.vercel.ap](https://eztrader-tau.vercel.app/dashboard)p)
+**Live app:** [eztrader-tau.vercel.app](https://eztrader-tau.vercel.app). Sign-in is required. To try it without an account, run it locally in [demo mode](#demo-mode).
 
 ---
 
@@ -27,8 +27,11 @@ A futures trading journal that shows how you actually performed over any trading
 - **Equity curve.** Cumulative P&L over the selected range.
 - **Monthly P&L calendar.** See your green and red days at a glance.
 - **Trade log.** Filter by date, symbol, and direction.
-- **CSV import.** Upload execution reports from **NinjaTrader** or **Tradovate**. The broker is detected from the file's headers, and Tradovate fills are paired into round-trip trades automatically.
-- **Accounts and auth.** Supabase handles email sign-in, and each user only sees their own data.
+- **CSV import.** Upload a **NinjaTrader** execution report or a **Tradovate** Orders export. The broker is detected from the file's headers. Tradovate fills are paired into round-trip trades, including scale-ins, partial exits, and reversals.
+- **Fees per contract.** Tradovate exports don't include fees, so you set a round-trip fee per product (MNQ, NQ, ES, and so on). Fees are applied on import and can be re-applied to trades you've already imported.
+- **Duplicate detection.** Importing a file that overlaps earlier imports adds only the new trades to the account and skips the rest.
+- **Settings.** Manage trading accounts, fees, and your password. Clear an account's trades to re-import them.
+- **Accounts and auth.** Supabase handles email sign-in, and row-level security limits each user to their own data.
 - **Demo mode.** Runs on built-in sample data with no database, so anyone can try it instantly.
 
 ## Tech Stack
@@ -59,7 +62,7 @@ The dashboard sends the trades in the selected range to `/api/analytics`, which 
 ### Prerequisites
 - Node.js 20+
 - Python 3.11+ (optional, for the analytics service)
-- A Supabase project (optional, since demo mode runs without one)
+- A Supabase project (optional, since [demo mode](#demo-mode) runs without one)
 
 ### 1. Clone and install
 ```bash
@@ -80,25 +83,33 @@ PYTHON_API_URL=http://localhost:8000
 NEXT_PUBLIC_DEMO_MODE=false
 ```
 
-If `NEXT_PUBLIC_SUPABASE_URL` isn't set, the app starts in demo mode automatically.
+Both values are under Project Settings → API in Supabase. The anon key is meant to be public; row-level security protects the data. Never use the `service_role` key here.
 
-### 3. Run the app
+### 3. Create the database tables
+In the Supabase dashboard, open **SQL Editor**, paste in [`supabase/schema.sql`](supabase/schema.sql), and run it. It creates the `accounts` and `trades` tables with row-level security, and it's safe to run again.
+
+Then under **Authentication → URL Configuration**, add `http://localhost:3000/**` to the redirect URLs so sign-up confirmation emails work locally.
+
+### 4. Run the app
 ```bash
 npm run dev
 ```
 Open [http://localhost:3000](http://localhost:3000).
 
-### 4. (Optional) Run the analytics service
+### 5. (Optional) Run the analytics service
 ```bash
 cd python-api
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
 
+### Demo mode
+If `NEXT_PUBLIC_SUPABASE_URL` isn't set, or `NEXT_PUBLIC_DEMO_MODE=true`, the app runs on built-in sample data with no sign-in. Changes last until the page is reloaded.
+
 ## Deployment
 
-- **Frontend:** Import the repo into Vercel and add the environment variables above. Pushes to `main` redeploy automatically.
-- **Supabase:** Set the Site URL under Authentication → URL Configuration to your Vercel domain so confirmation emails link to the right place.
+- **Frontend:** Import the repo into Vercel and add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` under Settings → Environment Variables. Leave out `NEXT_PUBLIC_DEMO_MODE`, or the deployment will run in demo mode. `NEXT_PUBLIC_` values are built into the app, so redeploy after changing them. Pushes to `main` redeploy automatically.
+- **Supabase:** Under Authentication → URL Configuration, set the Site URL to your Vercel domain and add `https://<your-domain>/**` to the redirect URLs so confirmation emails link to the right place.
 - **Analytics service (optional):** Deploy `python-api/` to Render or Railway with the start command `uvicorn main:app --host 0.0.0.0 --port $PORT`, then set `PYTHON_API_URL` in Vercel.
 
 ## Roadmap
