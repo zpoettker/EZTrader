@@ -131,7 +131,7 @@ export default function TradesPage() {
         <button
           onClick={applyFilters}
           className="px-3 py-1.5 rounded-lg text-xs font-medium"
-          style={{ background: 'var(--color-accent-blue)', color: '#fff' }}
+          style={{ background: 'var(--color-button)', color: '#fff' }}
         >
           Apply
         </button>

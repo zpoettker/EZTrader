@@ -107,7 +107,7 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-60"
             style={{
-              background: 'var(--color-accent-blue)',
+              background: 'var(--color-button)',
               color: '#fff',
             }}
           >

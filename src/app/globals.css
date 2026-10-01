@@ -1,6 +1,40 @@
 @import "tailwindcss";
 
 @theme {
+  --color-bg-primary: #0e0e10;
+  --color-bg-secondary: #18181b;
+  --color-bg-card: #1a1d21;
+  --color-bg-hover: #27272a;
+  --color-border: #333338;
+  --color-border-subtle: #26262a;
+
+  --color-text-primary: #e4e4e7;
+  --color-text-secondary: #a1a1aa;
+  --color-text-muted: #71717a;
+
+  --color-accent-blue: #3b82f6;
+  --color-accent-blue-hover: #2563eb;
+
+  --color-profit: #22c55e;
+  --color-profit-muted: #16a34a33;
+  --color-loss: #ef4444;
+  --color-loss-muted: #dc262633;
+
+  --color-logo-accent: #22c55e;
+  --color-button: #16a34a;
+  --color-shadow: rgba(0, 0, 0, 0.4);
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+/* Native controls (date pickers, scrollbars) follow the theme */
+:root {
+  color-scheme: dark;
+}
+
+/* Classic theme: the original navy palette (see src/lib/theme.ts) */
+[data-theme='classic'] {
   --color-bg-primary: #0f1117;
   --color-bg-secondary: #161b27;
   --color-bg-card: #1a2035;
@@ -12,16 +46,34 @@
   --color-text-secondary: #8b9dc3;
   --color-text-muted: #4a5a7d;
 
-  --color-accent-blue: #3b82f6;
-  --color-accent-blue-hover: #2563eb;
+  --color-logo-accent: #3b82f6;
+  --color-button: #3b82f6;
+}
 
-  --color-profit: #22c55e;
-  --color-profit-muted: #16a34a33;
-  --color-loss: #ef4444;
-  --color-loss-muted: #dc262633;
+/* Light theme: warm off-white cream (see src/lib/theme.ts) */
+[data-theme='light'] {
+  color-scheme: light;
 
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --color-bg-primary: #f1ece2;
+  --color-bg-secondary: #f6f2ea;
+  --color-bg-card: #faf7f1;
+  --color-bg-hover: #ebe4d7;
+  --color-border: #e0d8c9;
+  --color-border-subtle: #e9e2d5;
+
+  --color-text-primary: #2b2722;
+  --color-text-secondary: #685f53;
+  --color-text-muted: #9b9284;
+
+  /* Darker green/red so PnL text stays readable on cream */
+  --color-profit: #16a34a;
+  --color-profit-muted: #16a34a1f;
+  --color-loss: #dc2626;
+  --color-loss-muted: #dc26261a;
+
+  --color-logo-accent: #16a34a;
+  --color-button: #16a34a;
+  --color-shadow: rgba(60, 45, 20, 0.14);
 }
 
 * {

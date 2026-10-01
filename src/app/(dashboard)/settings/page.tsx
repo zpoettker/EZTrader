@@ -5,6 +5,7 @@ import { Plus, Pencil, Trash2, Eraser, Check, X, AlertCircle, CheckCircle, Refre
 import { createClient } from '@/lib/supabase/client'
 import { loadFees, saveFees, type FeeMap } from '@/lib/fees'
 import { productFromContract } from '@/lib/csv-parsers'
+import { THEMES, DEFAULT_THEME, currentTheme, setTheme, type Theme } from '@/lib/theme'
 import type { Account, Trade } from '@/types'
 
 type AccountRow = Account & { tradeCount: number }
@@ -120,6 +121,8 @@ export default function SettingsPage() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
 
+  const [theme, setThemeState] = useState<Theme>(DEFAULT_THEME)
+
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
 
@@ -159,12 +162,18 @@ export default function SettingsPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- load once on mount
     fetchAccounts()
     setFees(loadFees())
+    setThemeState(currentTheme())
     const loadEmail = async () => {
       const { data: { user } } = await createClient().auth.getUser()
       setEmail(user?.email ?? '')
     }
     loadEmail()
   }, [fetchAccounts])
+
+  function handleThemeChange(t: Theme) {
+    setTheme(t)
+    setThemeState(t)
+  }
 
   // Accounts
 
@@ -484,7 +493,7 @@ export default function SettingsPage() {
             onClick={handleCreateAccount}
             disabled={busy || !newAccount.name.trim()}
             className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50"
-            style={{ background: 'var(--color-accent-blue)', color: '#fff' }}
+            style={{ background: 'var(--color-button)', color: '#fff' }}
           >
             <Plus size={14} />
             Add account
@@ -572,7 +581,7 @@ export default function SettingsPage() {
             onClick={handleApplyFees}
             disabled={busy}
             className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50"
-            style={{ background: 'var(--color-accent-blue)', color: '#fff' }}
+            style={{ background: 'var(--color-button)', color: '#fff' }}
           >
             <RefreshCw size={14} className={busy ? 'animate-spin' : ''} />
             Apply to existing trades
@@ -615,6 +624,43 @@ export default function SettingsPage() {
             Change password
           </button>
         </form>
+      </Section>
+
+      <Section title="Appearance" description="Color theme for the app. Saved in this browser.">
+        <div className="flex flex-wrap gap-3" role="radiogroup" aria-label="Color theme">
+          {THEMES.map((t) => {
+            const selected = theme === t.id
+            return (
+              <button
+                key={t.id}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                onClick={() => handleThemeChange(t.id)}
+                className="flex items-center gap-3 rounded-lg px-4 py-3 text-left w-64"
+                style={{
+                  background: 'var(--color-bg-secondary)',
+                  border: `1px solid ${selected ? 'var(--color-logo-accent)' : 'var(--color-border)'}`,
+                }}
+              >
+                <span className="flex shrink-0 overflow-hidden rounded-md" style={{ border: '1px solid var(--color-border)' }}>
+                  {t.swatch.map((c) => (
+                    <span key={c} className="h-8 w-4" style={{ background: c }} />
+                  ))}
+                </span>
+                <span className="flex-1">
+                  <span className="block text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
+                    {t.label}
+                  </span>
+                  <span className="block text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+                    {t.description}
+                  </span>
+                </span>
+                {selected && <Check size={16} style={{ color: 'var(--color-logo-accent)' }} />}
+              </button>
+            )
+          })}
+        </div>
       </Section>
     </div>
   )

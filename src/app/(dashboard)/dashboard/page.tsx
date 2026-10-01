@@ -203,7 +203,7 @@ export default function DashboardPage() {
               style={{
                 background: 'var(--color-bg-card)',
                 border: '1px solid var(--color-border)',
-                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
+                boxShadow: '0 8px 24px var(--color-shadow)',
               }}
             >
               <p className="text-xs font-medium uppercase tracking-wider mb-3" style={{ color: 'var(--color-text-muted)' }}>
@@ -218,7 +218,7 @@ export default function DashboardPage() {
                     max={draftTo || undefined}
                     onChange={(e) => setDraftFrom(e.target.value)}
                     className="px-2.5 py-1.5 rounded-lg text-xs outline-none"
-                    style={{ background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)', colorScheme: 'dark' }}
+                    style={{ background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
                   />
                 </label>
                 <label className="flex items-center justify-between text-xs" style={{ color: 'var(--color-text-secondary)' }}>
@@ -229,7 +229,7 @@ export default function DashboardPage() {
                     min={draftFrom || undefined}
                     onChange={(e) => setDraftTo(e.target.value)}
                     className="px-2.5 py-1.5 rounded-lg text-xs outline-none"
-                    style={{ background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)', colorScheme: 'dark' }}
+                    style={{ background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', color: 'var(--color-text-primary)' }}
                   />
                 </label>
                 <div className="flex gap-2 mt-1">
@@ -237,7 +237,7 @@ export default function DashboardPage() {
                     onClick={applyCustom}
                     disabled={!draftFrom || !draftTo}
                     className="flex-1 px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-40"
-                    style={{ background: 'var(--color-accent-blue)', color: '#fff' }}
+                    style={{ background: 'var(--color-button)', color: '#fff' }}
                   >
                     Apply
                   </button>

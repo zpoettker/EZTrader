@@ -147,7 +147,7 @@ export default function SignupPage() {
             type="submit"
             disabled={loading}
             className="w-full py-2 rounded-lg text-sm font-medium disabled:opacity-60"
-            style={{ background: 'var(--color-accent-blue)', color: '#fff' }}
+            style={{ background: 'var(--color-button)', color: '#fff' }}
           >
             {loading ? 'Creating account…' : 'Create account'}
           </button>
