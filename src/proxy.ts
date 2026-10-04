@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { DEMO_COOKIE } from '@/lib/demo'
 
 export async function proxy(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
@@ -11,6 +12,8 @@ export async function proxy(request: NextRequest) {
   }
 
   let supabaseResponse = NextResponse.next({ request })
+
+  const isDemo = request.cookies.get(DEMO_COOKIE)?.value === '1'
 
   const supabase = createServerClient(
     supabaseUrl,
@@ -33,9 +36,7 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = isDemo ? true : (await supabase.auth.getUser()).data.user
 
   const { pathname } = request.nextUrl
 

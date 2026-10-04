@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { isDemoCredentials, startDemoSession } from '@/lib/demo'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -16,6 +17,13 @@ export default function LoginPage() {
     e.preventDefault()
     setError('')
     setLoading(true)
+
+    if (isDemoCredentials(email, password)) {
+      startDemoSession()
+      router.push('/dashboard')
+      router.refresh()
+      return
+    }
 
     const supabase = createClient()
     const { error } = await supabase.auth.signInWithPassword({ email, password })
@@ -58,7 +66,8 @@ export default function LoginPage() {
             </label>
             <input
               id="email"
-              type="email"
+              type="text"
+              inputMode="email"
               autoComplete="email"
               required
               value={email}

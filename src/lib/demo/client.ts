@@ -1,5 +1,5 @@
 import type { Trade } from '@/types'
-import { DEMO_USER_ID, DEMO_USER_EMAIL } from './index'
+import { DEMO_USER_ID, DEMO_USER_EMAIL, endDemoSession } from './index'
 import { generateDemoTrades, DEMO_ACCOUNTS } from './data'
 
 type Row = Record<string, unknown>
@@ -174,6 +174,7 @@ export function createDemoClient() {
         return authError('Demo mode — account changes are disabled.')
       },
       async signOut() {
+        endDemoSession()
         return { error: null }
       },
       onAuthStateChange() {
