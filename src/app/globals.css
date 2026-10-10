@@ -33,6 +33,32 @@
   color-scheme: dark;
 }
 
+/* Graphite restated as a scope, so a subtree can force it whatever theme is on
+   <html> (the auth pages sit on a graphite background image). Mirrors @theme. */
+[data-theme='graphite'] {
+  color-scheme: dark;
+
+  --color-bg-primary: #0e0e10;
+  --color-bg-secondary: #18181b;
+  --color-bg-card: #1a1d21;
+  --color-bg-hover: #27272a;
+  --color-border: #333338;
+  --color-border-subtle: #26262a;
+
+  --color-text-primary: #e4e4e7;
+  --color-text-secondary: #a1a1aa;
+  --color-text-muted: #71717a;
+
+  --color-profit: #22c55e;
+  --color-profit-muted: #16a34a33;
+  --color-loss: #ef4444;
+  --color-loss-muted: #dc262633;
+
+  --color-logo-accent: #22c55e;
+  --color-button: #16a34a;
+  --color-shadow: rgba(0, 0, 0, 0.4);
+}
+
 /* Classic theme: the original navy palette (see src/lib/theme.ts) */
 [data-theme='classic'] {
   --color-bg-primary: #0f1117;

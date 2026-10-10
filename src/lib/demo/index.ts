@@ -2,6 +2,8 @@
 // Enabled when NEXT_PUBLIC_DEMO_MODE === 'true', automatically when no Supabase
 // URL is configured (so a fresh clone doesn't crash on a missing env), or per
 // browser session after signing in with demo / demo (sets DEMO_COOKIE).
+import { setTheme } from '@/lib/theme'
+
 export const DEMO_COOKIE = 'eztrader-demo'
 
 export function isDemoMode(): boolean {
@@ -21,8 +23,10 @@ export function isDemoCredentials(email: string, password: string): boolean {
 }
 
 // Session cookie (no Max-Age), so the demo ends when the browser closes.
+// The demo always opens in graphite, the theme its screenshots and login art use.
 export function startDemoSession() {
   document.cookie = `${DEMO_COOKIE}=1; path=/; SameSite=Lax`
+  setTheme('graphite')
 }
 
 export function endDemoSession() {
