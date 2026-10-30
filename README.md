@@ -2,7 +2,7 @@
 
 A futures trading journal that shows how you actually performed over any trading period. Import your trades from NinjaTrader or Tradovate, pick a date range, and get your core stats, equity curve, and a P&L calendar in one view.
 
-**Live app:** [eztrader-tau.vercel.app](https://eztrader-tau.vercel.app). Sign-in is required. To try it without an account, run it locally in [demo mode](#demo-mode).
+**Live app:**([eztrader.zachpoettker.com](https://eztrader.zachpoettker.com/login)). Sign-in is required. To try it without an account, run it locally in [demo mode](#demo-mode).
 
 ---
 
